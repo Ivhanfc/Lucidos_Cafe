@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
     root["LucidosCafe"]
     root --> go["go.mod"]
@@ -51,3 +52,4 @@ flowchart TD
     class api,app,domain,ports,infrastructure layer;
     class http,persistence,websocket,authFolder,handlerFolder infra;
     class order,product,user,orderGo,orderStatus,orderErr,productGo,categoryGo,productErr,userGo,userErr domain;
+```
