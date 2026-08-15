@@ -8,9 +8,16 @@ import (
 	"lucidos_cafe/internal/infrastructure/persistence/memory"
 	"lucidos_cafe/internal/ports"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Aviso: No se encontró el archivo .env, se usarán las variables del sistema")
+	}
+	
 	auth.InitOAuth(auth.OAuthConfig{
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 		GoogleKey: os.Getenv("CLIENT_ID"),

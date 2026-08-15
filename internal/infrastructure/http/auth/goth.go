@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -17,8 +18,12 @@ type OAuthConfig struct {
 	CallbackURL string
 }
 func InitOAuth(cfg OAuthConfig) {
+	if cfg.CallbackURL == "" {
+		log.Fatalf("ERROR CRÍTICO: CallbackURL está vacío. Revisa que tu archivo .env esté en la raíz del proyecto y contenga CALLBACK_URL=http://localhost:8080/auth/google/callback")
+	}
+	
 	store := sessions.NewCookieStore([]byte(cfg.SessionSecret))
-	store.MaxAge(int(12 * time.Hour) / time.Now().Second())
+	store.MaxAge(int(12 * time.Hour.Seconds()))
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
 	store.Options.Secure = false
@@ -26,6 +31,6 @@ func InitOAuth(cfg OAuthConfig) {
 
 	gothic.Store = store
 	goth.UseProviders(
-		google.New(cfg.GoogleKey, cfg.GoogleSecret, cfg.CallbackURL),
+		google.New(cfg.GoogleKey, cfg.GoogleSecret, cfg.CallbackURL, "email", "profile"),
 	)
 }
