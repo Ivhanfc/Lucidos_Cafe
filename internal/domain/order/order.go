@@ -13,6 +13,7 @@ type OrderItem struct {
 type Order struct {
 	id string
 	customerName string
+	customerID string
 	items []OrderItem
 	status Status
 	totalAmount float64
@@ -78,7 +79,7 @@ func (o *Order) GetStatus() Status { return o.status }
 func (o *Order) GetTotalAmount() float64 { return o.totalAmount }
 func (o *Order) GetCreatedAt() time.Time { return o.createdAt }
 func (o *Order) GetUpdatedAt() time.Time { return o.updatedAt }
-
+func (o *Order) GetCustomerID() string { return o.customerID } 
 
 
 

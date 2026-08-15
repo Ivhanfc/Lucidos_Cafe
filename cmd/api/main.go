@@ -1,10 +1,13 @@
 package main
 
 import (
-	"lucidos_cafe/infrastructure/http/auth"
+	"log"
+	appHTTP "lucidos_cafe/internal/infrastructure/http"
+	"lucidos_cafe/internal/infrastructure/http/auth"
+	"lucidos_cafe/internal/infrastructure/http/handler"
+	"lucidos_cafe/internal/infrastructure/persistence/memory"
+	"lucidos_cafe/internal/ports"
 	"os"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -14,7 +17,16 @@ func main() {
 		GoogleSecret: os.Getenv("CLIENT_SECRET"),
 		CallbackURL: os.Getenv("CALLBACK_URL"),
 	})
-
-	router := gin.Default()
-	router.Run(":8080")
+	userRepo := memory.NewUserRepository()
+	orderRepo := memory.NewOrderRepository()
+	var notifier ports.RealtimeNotifier
+	
+	authHandler := handler.NewAuthHandler(userRepo)
+	orderHandler := handler.NewOrderHandler(orderRepo, notifier)
+	router := appHTTP.SetupRouter(authHandler, orderHandler)
+	
+	log.Println("Server is running in http://localhost:8080")
+	if err := router.Run(":8080"); err != nil {
+		log.Fatalf("Failed to run server: %v", err)
+	}
 }
