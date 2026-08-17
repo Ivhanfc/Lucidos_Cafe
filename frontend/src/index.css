@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cafe-bg: #f0ebd7;
+  --color-cafe-light: #e0d8b0;
+  --color-cafe-muted: #a9a27c;
+  --color-cafe-emerald: #00674f;
+}
