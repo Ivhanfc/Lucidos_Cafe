@@ -6,3 +6,13 @@
   --color-cafe-muted: #a9a27c;
   --color-cafe-emerald: #00674f;
 }
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

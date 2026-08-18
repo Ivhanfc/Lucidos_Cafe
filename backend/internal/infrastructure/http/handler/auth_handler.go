@@ -91,7 +91,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
-		Name     string `json:"name"`
+		Name     string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
