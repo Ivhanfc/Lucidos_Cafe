@@ -58,13 +58,15 @@ export default function App() {
       <div className="w-full max-w-[420px] bg-white rounded-2xl p-8 sm:p-12 shadow-[0_20px_40px_-10px_rgba(169,162,124,0.4)] border border-[#e0d8b0]">
         {/* logo and title */}
         <header className="flex flex-col items-center mb-8">
-          <img
-            className="w-50 h-50 mb-2 rounded-full"
-            src="/Lucidos_Logo.png"
-            alt="Lucidos Cafe Logo"
-          />
-          <p className="text-[#a9a27c] text-sm mt-1">
-            {isLogin ? 'Portal de acceso' : 'Crear una cuenta'}
+          <div className="relative mb-3 group">
+            <img
+              className="w-55 h-55 rounded-full object-cover shadow-[0_8px_20px_rgba(169,162,124,0.3)] border-2 border-[#f0ebd7] p-1 bg-white transition-transform duration-300 group-hover:scale-105"
+              src="/Lucidos_Logo.png"
+              alt="Lucidos Cafe Logo"
+            />
+          </div>
+          <p className="text-[#00674f] text-md mt-1 font-bold tracking-wide">
+            {isLogin ? 'Portal de acceso' : 'Registro de usuario'}
           </p>
         </header>
 
