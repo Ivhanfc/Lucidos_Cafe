@@ -106,7 +106,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	password := strings.TrimSpace(req.Password)
 
 	if name == "" || email == "" || password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "nombre, email y password son obligatorios"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Usuario, email y password son obligatorios"})
 		return
 	}
 

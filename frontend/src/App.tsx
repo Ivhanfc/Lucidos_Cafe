@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Coffee, Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
 import axios from 'axios';
 
 // URLs apuntando al grupo /auth del backend
@@ -15,9 +14,12 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true); // State to toggle between login and register
 
   const toggleShowPassword = () => setShowPassword((prev) => !prev);
+
+  const REGISTER_API_URL = `${BASE_URL}/auth/register`;
+  const currentEndpoint = isLogin ? LOGIN_API_URL : REGISTER_API_URL;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ export default function App() {
 
     try {
       const response = await axios.post(
-        LOGIN_API_URL,
+        currentEndpoint,
         { email, username, password },
         { withCredentials: true }
       );
@@ -61,7 +63,9 @@ export default function App() {
             src="/Lucidos_Logo.png"
             alt="Lucidos Cafe Logo"
           />
-          <p className="text-[#a9a27c] text-sm mt-1">Portal de acceso</p>
+          <p className="text-[#a9a27c] text-sm mt-1">
+            {isLogin ? 'Portal de acceso' : 'Crear una cuenta'}
+          </p>
         </header>
 
         {errorMsg && (
@@ -72,29 +76,33 @@ export default function App() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          <div>
-            <label
-              htmlFor="username"
-              className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2"
-            >
-              Usuario
-            </label>
-            <div className="relative flex items-center">
-              <User
-                className="absolute left-3.5 text-[#a9a27c] pointer-events-none"
-                size={20}
-              />
-              <input
-                id="username"
-                type="text"
-                placeholder="Nombre de usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-[#faf9f5] border-2 border-[#e0d8b0] rounded-xl text-gray-800 placeholder-[#c5bfa5] focus:border-[#00674f] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#00674f]/10 transition-all duration-300"
-                required
-              />
+          {/* Toggle between login and register */}
+          {!isLogin && (
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2"
+              >
+                Usuario
+              </label>
+              <div className="relative flex items-center">
+                <User
+                  className="absolute left-3.5 text-[#a9a27c] pointer-events-none"
+                  size={20}
+                />
+                <input
+                  id="username"
+                  type="text"
+                  placeholder="Nombre de usuario"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3.5 bg-[#faf9f5] border-2 border-[#e0d8b0] rounded-xl text-gray-800 placeholder-[#c5bfa5] focus:border-[#00674f] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#00674f]/10 transition-all duration-300"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
+
           <div>
             <label
               htmlFor="email"
@@ -180,22 +188,25 @@ export default function App() {
             disabled={loading}
             className="w-full bg-[#00674f] hover:bg-[#00523f] text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#00674f]/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            {loading ? 'Procesando...' : isLogin ? 'Iniciar sesión' : 'Crear cuenta'}
             <ArrowRight size={20} />
           </button>
         </form>
 
-        {
-          <div className="mt-8 text-center text-sm - text[#a9a27c]">
-            ¿No tienes cuenta?{' '}
-            <a
-              href="/register"
-              className="text-[#00674f] font-bold hover:underline"
-            >
-              Regístrate aquí
-            </a>
-          </div>
-        }
+
+        <div className="mt-8 text-center text-sm text-[#a9a27c]">
+          {isLogin ? '¿No tienes una cuenta? ' : '¿Ya tienes una cuenta? '}
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setErrorMsg('');
+            }}
+            className="text-[#00674f] font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
+          >
+            {isLogin ? 'Regístrate' : 'Inicia sesión'}
+          </button>
+        </div>
       </div>
     </div>
   );
