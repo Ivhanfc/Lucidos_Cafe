@@ -15,9 +15,9 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Aviso: No se encontró el archivo .env, se usarán las variables del sistema")
+		log.Println("Aviso: No se encontró el archivo .env")
 	}
-	
+
 	auth.InitOAuth(auth.OAuthConfig{
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 		GoogleKey: os.Getenv("CLIENT_ID"),

@@ -1,41 +1,90 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Coffee, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import axios from 'axios';
+
+// URLs apuntando al grupo /auth del backend
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const GOOGLE_AUTH_URL = `${BASE_URL}/auth/google`;
+const LOGIN_API_URL = `${BASE_URL}/auth/login`;
 
 export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toggleShowPassword = () => setShowPassword((prev) => !prev);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Iniciando sesión con:', { email, password });
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await axios.post(
+        LOGIN_API_URL,
+        { email, password },
+        { withCredentials: true }
+      );
+
+      console.log('Respuesta del servidor:', response.data);
+
+      // Si el backend te devuelve un token
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+      }
+
+      // Redirigir al Dashboard tras login exitoso
+      window.location.href = '/dashboard';
+    } catch (error: any) {
+      console.error('Error al iniciar sesión:', error);
+      // Ajuste para leer .error enviado por Gin
+      setErrorMsg(
+        error.response?.data?.error || 'Error al conectar con el servidor'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f0ebd7] flex items-center justify-center p-4">
       <div className="w-full max-w-[420px] bg-white rounded-2xl p-8 sm:p-12 shadow-[0_20px_40px_-10px_rgba(169,162,124,0.4)] border border-[#e0d8b0]">
-
-        {/* Encabezado */}
-        <div className="flex flex-col items-center mb-10">
+        
+        <header className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-[#00674f] text-white flex items-center justify-center rounded-2xl mb-4 -rotate-6 hover:rotate-6 transition-transform duration-300">
             <Coffee size={36} strokeWidth={2.5} />
           </div>
-          <h1 className="text-[#00674f] text-3xl font-extrabold tracking-tight">Lúcidos Café</h1>
+          <h1 className="text-[#00674f] text-3xl font-extrabold tracking-tight">
+            Lúcidos Café
+          </h1>
           <p className="text-[#a9a27c] text-sm mt-1">Portal de acceso</p>
-        </div>
+        </header>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {errorMsg && (
+          <div role="alert" className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2" htmlFor="email">
+            <label
+              htmlFor="email"
+              className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2"
+            >
               Usuario / Correo
             </label>
             <div className="relative flex items-center">
-              <Mail className="absolute left-3.5 text-[#a9a27c] pointer-events-none" size={20} />
+              <Mail
+                className="absolute left-3.5 text-[#a9a27c] pointer-events-none"
+                size={20}
+              />
               <input
                 id="email"
                 type="email"
-                placeholder="email@example"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-11 pr-4 py-3.5 bg-[#faf9f5] border-2 border-[#e0d8b0] rounded-xl text-gray-800 placeholder-[#c5bfa5] focus:border-[#00674f] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#00674f]/10 transition-all duration-300"
@@ -45,11 +94,17 @@ export default function App() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2" htmlFor="password">
+            <label
+              htmlFor="password"
+              className="block text-xs font-semibold text-[#a9a27c] uppercase tracking-wider mb-2"
+            >
               Contraseña
             </label>
             <div className="relative flex items-center">
-              <Lock className="absolute left-3.5 text-[#a9a27c] pointer-events-none" size={20} />
+              <Lock
+                className="absolute left-3.5 text-[#a9a27c] pointer-events-none"
+                size={20}
+              />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -61,9 +116,11 @@ export default function App() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={toggleShowPassword}
                 className="absolute right-3.5 text-[#a9a27c] hover:text-[#00674f] transition-colors"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-label={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -71,16 +128,33 @@ export default function App() {
           </div>
 
           <div className="text-right -mt-2">
-            <a href="#" className="text-xs text-[#00674f] font-semibold hover:underline">
+            <a
+              href="#"
+              className="text-xs text-[#00674f] font-semibold hover:underline"
+            >
               ¿Olvidaste tu contraseña?
             </a>
           </div>
 
+          <a
+            href={GOOGLE_AUTH_URL}
+            className="w-full border-2 border-[#e0d8b0] bg-white hover:bg-[#faf9f5] text-gray-700 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
+          >
+            <img
+              src="https://authjs.dev/img/providers/google.svg"
+              alt="Google logo"
+              width="20"
+              height="20"
+            />
+            Entrar con Google
+          </a>
+
           <button
             type="submit"
-            className="w-full bg-[#00674f] hover:bg-[#00523f] active:translate-y-0 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#00674f]/20 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+            disabled={loading}
+            className="w-full bg-[#00674f] hover:bg-[#00523f] text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#00674f]/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 cursor-pointer disabled:opacity-50"
           >
-            Entrar a la tienda
+            {loading ? 'Entrando...' : 'Entrar a la tienda'}
             <ArrowRight size={20} />
           </button>
         </form>
