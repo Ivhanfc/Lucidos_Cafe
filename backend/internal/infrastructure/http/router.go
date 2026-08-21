@@ -25,10 +25,14 @@ func SetupRouter(
 	{
 		authRoutes.POST("/register", authHandler.Register)
 		authRoutes.POST("/login", authHandler.ManualLogin)
+		authRoutes.GET("/logout", authHandler.Logout)
+		authRoutes.GET("/me", authHandler.Me)
+		
+		
 		authRoutes.GET("/:provider", authHandler.BeginAuth)
 		authRoutes.GET("/:provider/callback", authHandler.Callback)
-		authRoutes.GET("/logout", authHandler.Logout)
 	}
+		
 
 	api := r.Group("/api/v1") 
 	{

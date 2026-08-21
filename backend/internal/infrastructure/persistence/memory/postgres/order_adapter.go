@@ -16,7 +16,7 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
-// Save inserta o actualiza una orden y sus ítems usando una transacción.
+// Save inserts or updates an order and its items using a transaction.
 func (r *OrderRepository) Save(ctx context.Context, ord *order.Order) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -24,7 +24,7 @@ func (r *OrderRepository) Save(ctx context.Context, ord *order.Order) error {
 	}
 	defer tx.Rollback()
 
-	// 1. Insertar o actualizar la cabecera (orders)
+	// 1. Insert or update the order header.
 	queryOrder := `
 		INSERT INTO orders (id, user_id, total_amount, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -45,7 +45,7 @@ func (r *OrderRepository) Save(ctx context.Context, ord *order.Order) error {
 		return err
 	}
 
-	// 2. Limpiar ítems previos e re-insertar los actuales (garantiza sincronización limpia)
+	// 2. Clear old items and re-insert the current ones to keep the data consistent.
 	_, err = tx.ExecContext(ctx, `DELETE FROM order_items WHERE order_id = $1`, ord.GetID())
 	if err != nil {
 		return err
@@ -100,17 +100,17 @@ func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order
 		return nil, err
 	}
 
-	// Consultar ítems de la orden
+	// Load the order items.
 	items, err := r.fetchOrderItems(ctx, ordID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Reconstruir la entidad usando NewOrder
+	// Rebuild the entity with NewOrder.
 	return order.NewOrder(ordID, customerID, items)
 }
 
-// FindActiveOrders recupera órdenes en estado pending o preparing.
+// FindActiveOrders returns orders in the pending or preparing state.
 func (r *OrderRepository) FindActiveOrders(ctx context.Context) ([]*order.Order, error) {
 	query := `
 		SELECT o.id
@@ -145,7 +145,7 @@ func (r *OrderRepository) FindActiveOrders(ctx context.Context) ([]*order.Order,
 	return activeOrders, nil
 }
 
-// FindByUserID recupera el historial de órdenes de un usuario específico.
+// FindByUserID gets the order history for a specific user.
 func (r *OrderRepository) FindByUserID(ctx context.Context, userID string) ([]*order.Order, error) {
 	query := `
 		SELECT id
@@ -180,7 +180,7 @@ func (r *OrderRepository) FindByUserID(ctx context.Context, userID string) ([]*o
 	return userOrders, nil
 }
 
-// UpdateStatus actualiza únicamente el estado de la orden en la base de datos.
+// UpdateStatus updates only the order status in the database.
 func (r *OrderRepository) UpdateStatus(ctx context.Context, id string, status order.Status) error {
 	query := `
 		UPDATE orders
@@ -203,7 +203,7 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, id string, status or
 	return nil
 }
 
-// Auxiliar para traer los ítems asociados a una orden.
+// Helper to load the items associated with an order.
 func (r *OrderRepository) fetchOrderItems(ctx context.Context, orderID string) ([]order.OrderItem, error) {
 	query := `
 		SELECT product_id, product_name, quantity, unit_price, COALESCE(notes, '')

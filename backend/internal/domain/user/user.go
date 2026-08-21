@@ -20,7 +20,7 @@ type User struct {
 	updatedAt     time.Time
 }
 
-// NewUser crea un usuario tradicional con contraseña
+// Create a traditional user with a password.
 func NewUser(id string, name string, email string, passwordHash string) (*User, error) {
 	u, err := newBaseUser(id, name, email)
 	if err != nil {
@@ -35,7 +35,7 @@ func NewUser(id string, name string, email string, passwordHash string) (*User, 
 	return u, nil
 }
 
-// NewOAuthUser crea un usuario autenticado por proveedor externo (Google)
+// Create a user authenticated by an external provider (Google).
 func NewOAuthUser(id string, name string, email string, googleID string) (*User, error) {
 	u, err := newBaseUser(id, name, email)
 	if err != nil {
@@ -46,7 +46,7 @@ func NewOAuthUser(id string, name string, email string, googleID string) (*User,
 	return u, nil
 }
 
-// RestoreUser reconstruye la entidad desde la base de datos
+// RestoreUser rebuilds the entity from the database.
 func RestoreUser(
 	id, name, email, passwordHash, googleID string,
 	streakDays int, lastOrderDate *time.Time, loyaltyPoints int,
@@ -136,7 +136,7 @@ func (u *User) RedeemPoints(points int) error {
 	return nil
 }
 
-// Métodos para OAuth y Autenticación
+// Methods for OAuth and authentication.
 func (u *User) LinkGoogleID(googleID string) {
 	u.googleID = strings.TrimSpace(googleID)
 	u.updatedAt = time.Now()

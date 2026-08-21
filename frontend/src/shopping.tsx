@@ -1,8 +1,9 @@
+// src/shopping.tsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, ShoppingBag, Settings, Home, Coffee, MapPin, Gift, Star,
-    X, Plus, Minus, Trash2, CreditCard, CheckCircle
+    X, Plus, Minus, CreditCard, CheckCircle
 } from 'lucide-react';
 
 interface Product {
@@ -25,6 +26,14 @@ interface SavedCard {
     name: string;
 }
 
+interface ProductSectionProps {
+    title: string;
+    products: Product[];
+    showViewAll?: boolean;
+    onAddToCart: (product: Product) => void;
+    onViewAll?: () => void;
+}
+
 const CATEGORIES = ['Todos', 'Clásicos', 'Té & Matcha', 'Especialidades'];
 
 const MOCK_PRODUCTS: Product[] = [
@@ -44,6 +53,58 @@ const pageVariants = {
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -15 }
 };
+
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center gap-1 flex-1 py-1 ${active ? 'text-[#00674f] font-bold' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            {icon}
+            <span className="text-[10px]">{label}</span>
+        </button>
+    );
+}
+
+function ProductSection({ title, products, showViewAll = true, onAddToCart, onViewAll }: ProductSectionProps) {
+    return (
+        <div className="px-4 py-3">
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-[#00674f] text-lg">{title}</h3>
+                {showViewAll && (
+                    <button onClick={onViewAll} className="text-xs font-semibold text-gray-500 hover:text-[#00674f]">
+                        Ver todos
+                    </button>
+                )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                {products.map(product => (
+                    <motion.div
+                        key={product.id}
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white border border-[#e0d8b0]/60 rounded-2xl p-3 flex flex-col justify-between shadow-sm"
+                    >
+                        <img src={product.imageUrl} alt={product.name} className="w-full h-28 object-cover rounded-xl mb-2" />
+                        <div>
+                            <h4 className="font-bold text-gray-800 text-sm">{product.name}</h4>
+                            <p className="text-xs text-gray-500">{product.category}</p>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                            <span className="font-bold text-[#00674f] text-sm">${product.basePrice}</span>
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => onAddToCart(product)}
+                                className="bg-[#00674f] text-white p-2 rounded-xl shadow-md hover:bg-[#00523e]"
+                            >
+                                <Plus size={16} />
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export default function ShoppingPage() {
     const [activeTab, setActiveTab] = useState('Menú');
@@ -88,15 +149,13 @@ export default function ShoppingPage() {
         }, 3000);
     };
 
-    // This function filters products based on the active category and groups them for display. 
     const filteredProducts = activeCategory === 'Todos'
         ? MOCK_PRODUCTS
         : MOCK_PRODUCTS.filter(p => p.category === activeCategory);
 
-    // This function groups the products by category for the "Todos" view, so that each category can be displayed separately with its own section. returns an object where keys are category names and values are arrays of products in that category.
     const groupedProducts = CATEGORIES.slice(1).reduce((acc, category) => {
         acc[category] = MOCK_PRODUCTS.filter(p => p.category === category);
-        return acc; // This creates an object like { 'Clásicos': [...], 'Té & Matcha': [...] }
+        return acc;
     }, {} as Record<string, Product[]>);
 
     const renderContent = () => {
@@ -333,8 +392,6 @@ export default function ShoppingPage() {
                     </AnimatePresence>
                 </main>
 
-                {/* Button to open the cart */}
-
                 {cart.length > 0 && (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -512,111 +569,63 @@ export default function ShoppingPage() {
                                             >
                                                 <div>
                                                     <label className="text-xs font-bold text-gray-500 mb-1 block">Número de Tarjeta</label>
-                                                    <input type="text" placeholder="0000 0000 0000 0000" className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#00674f]" />
+                                                    <input type="text" placeholder="0000 0000 0000 0000" className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#00674f]" />
                                                 </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-500 mb-1 block">Nombre en la tarjeta</label>
-                                                    <input type="text" placeholder="Ej. Juan Pérez" className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#00674f]" />
-                                                </div>
-                                                <div className="flex gap-4">
+                                                <div className="flex gap-3">
                                                     <div className="flex-1">
-                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Vencimiento</label>
-                                                        <input type="text" placeholder="MM/YY" className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#00674f]" />
+                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Expiración</label>
+                                                        <input type="text" placeholder="MM/AA" className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#00674f]" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">CVV</label>
-                                                        <input type="text" placeholder="123" className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#00674f]" />
+                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">CVC</label>
+                                                        <input type="text" placeholder="123" className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#00674f]" />
                                                     </div>
                                                 </div>
-                                                <motion.button
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => {
-                                                        setSavedCards([...savedCards, { id: 'c2', last4: '1234', brand: 'Mastercard', name: 'Nueva Tarjeta' }]);
-                                                        setCheckoutStep('payment');
-                                                    }}
-                                                    className="w-full bg-[#00674f] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#00523e] transition-colors mt-6"
+                                                <button
+                                                    onClick={() => setCheckoutStep('payment')}
+                                                    className="w-full bg-[#00674f] text-white font-bold py-3 rounded-xl mt-2"
                                                 >
                                                     Guardar Tarjeta
-                                                </motion.button>
+                                                </button>
                                             </motion.div>
                                         )}
 
                                         {checkoutStep === 'success' && (
                                             <motion.div
                                                 key="success"
-                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                initial={{ opacity: 0, scale: 0.9 }}
                                                 animate={{ opacity: 1, scale: 1 }}
-                                                className="flex flex-col items-center justify-center h-full text-center space-y-4 pt-10"
+                                                className="flex flex-col items-center justify-center py-12 text-center"
                                             >
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
-                                                    className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center"
-                                                >
-                                                    <CheckCircle size={40} />
-                                                </motion.div>
-                                                <motion.h3
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.4 }}
-                                                    className="text-2xl font-bold text-gray-800"
-                                                >
-                                                    ¡Pago Exitoso!
-                                                </motion.h3>
-                                                <motion.p
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.5 }}
-                                                    className="text-gray-500"
-                                                >
-                                                    Tu pedido se está preparando y estará listo pronto.
-                                                </motion.p>
+                                                <CheckCircle size={64} className="text-[#00674f] mb-4" />
+                                                <h3 className="text-2xl font-bold text-gray-800 mb-2">¡Gracias por tu compra!</h3>
+                                                <p className="text-gray-500 text-sm">Estamos preparando tu pedido en barismo.</p>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
                                 </div>
 
-                                {cart.length > 0 && checkoutStep !== 'success' && checkoutStep !== 'addCard' && (
-                                    <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <span className="text-gray-500 font-semibold">Total</span>
-                                            <motion.span
-                                                key={cartTotal}
-                                                initial={{ scale: 1.2, color: "#22c55e" }}
-                                                animate={{ scale: 1, color: "#00674f" }}
-                                                className="text-2xl font-bold text-[#00674f]"
-                                            >
-                                                ${cartTotal.toFixed(2)}
-                                            </motion.span>
+                                {cart.length > 0 && checkoutStep !== 'success' && (
+                                    <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-3">
+                                        <div className="flex justify-between items-center text-lg font-bold">
+                                            <span>Total:</span>
+                                            <span className="text-[#00674f]">${cartTotal}</span>
                                         </div>
-
-                                        {checkoutStep === 'cart' ? (
-                                            <div className="flex gap-4">
-                                                <motion.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => setCart([])}
-                                                    className="w-full bg-red-500 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-red-600 transition-colors text-lg"
-                                                >
-                                                    Limpiar Carrito
-                                                </motion.button>
-
-                                                <motion.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => setCheckoutStep('payment')}
-                                                    className="w-full bg-[#00674f] text-white py-4 rounded-xl font-bold shadow-lg hover:bg-[#00523e] transition-colors text-lg"
-                                                >
-                                                    Proceder al Pago
-                                                </motion.button>
-                                            </div>
-                                        ) : (
-                                            <motion.button
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={handlePayment}
-                                                className="w-full bg-[#00674f] text-white py-4 rounded-xl font-bold shadow-lg hover:bg-[#00523e] transition-colors text-lg flex justify-center gap-2"
+                                        {checkoutStep === 'cart' && (
+                                            <button
+                                                onClick={() => setCheckoutStep('payment')}
+                                                className="w-full bg-[#00674f] text-white font-bold py-3.5 rounded-xl shadow-lg"
                                             >
-                                                Pagar ${cartTotal.toFixed(2)}
-                                            </motion.button>
+                                                Continuar al Pago
+                                            </button>
+                                        )}
+                                        {checkoutStep === 'payment' && (
+                                            <button
+                                                onClick={handlePayment}
+                                                className="w-full bg-[#00674f] text-white font-bold py-3.5 rounded-xl shadow-lg"
+                                            >
+                                                Pagar (${cartTotal})
+                                            </button>
                                         )}
                                     </div>
                                 )}
@@ -625,106 +634,6 @@ export default function ShoppingPage() {
                     )}
                 </AnimatePresence>
             </div>
-        </div >
-    );
-}
-
-function ProductSection({
-    title,
-    products,
-    showViewAll = true,
-    onAddToCart,
-    onViewAll
-}: {
-    title: string,
-    products: Product[],
-    showViewAll?: boolean,
-    onAddToCart: (p: Product) => void,
-    onViewAll?: () => void
-}) {
-    if (products.length === 0) return null;
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.05
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, x: 20 },
-        show: { opacity: 1, x: 0 }
-    };
-
-    return (
-        <section className="py-5 border-b border-[#e0d8b0]/30 last:border-0 bg-[#faf9f5]">
-            <div className="flex justify-between items-end px-5 mb-4">
-                <h2 className="text-xl font-bold text-gray-800 tracking-tight">{title}</h2>
-                {showViewAll && (
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onViewAll}
-                        className="text-[#00674f] text-sm font-semibold hover:underline cursor-pointer"
-                    >
-                        Ver todo {products.length}
-                    </motion.button>
-                )}
-            </div>
-
-            <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="flex overflow-x-auto gap-4 px-5 pb-4 pt-2 snap-x hide-scrollbar"
-            >
-                {products.map(product => (
-                    <motion.div variants={itemVariants} key={product.id} className="snap-center flex-shrink-0 w-32 flex flex-col items-center">
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="w-28 h-28 rounded-full border-[4px] border-[#00674f] shadow-md overflow-hidden mb-3 bg-white"
-                        >
-                            <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                            />
-                        </motion.div>
-                        <h3 className="text-sm font-bold text-gray-800 text-center leading-tight">{product.name}</h3>
-                        <p className="text-xs text-gray-500 mt-1">Desde ${product.basePrice}</p>
-
-
-                        <motion.button
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => onAddToCart(product)}
-                            className="mt-2 text-[#00674f] text-xs font-bold flex items-center gap-1 hover:bg-[#f0ebd7] px-4 py-2 rounded-lg transition-colors border border-transparent bg-white shadow-sm hover:shadow-md"
-                        >
-                            <Plus size={14} strokeWidth={3} />
-                            Agregar
-                        </motion.button>
-                    </motion.div>
-                ))}
-            </motion.div>
-        </section>
-    );
-}
-
-function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }) {
-    return (
-        <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onClick}
-            className={`flex flex-col items-center p-2 min-w-[70px] transition-colors focus:outline-none ${active ? 'text-[#00674f]' : 'text-gray-400 hover:text-[#a9a27c]'}`}
-        >
-            <motion.div
-                layout
-                className={`transition-all duration-300 ${active ? 'bg-[#f0ebd7] p-1.5 rounded-xl scale-110' : 'p-1.5 scale-100'}`}
-            >
-                {icon}
-            </motion.div>
-            <span className={`text-[10px] mt-1 font-medium transition-all duration-300 ${active ? 'font-bold' : ''}`}>{label}</span>
-        </motion.button>
+        </div>
     );
 }

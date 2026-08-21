@@ -19,7 +19,7 @@ type OAuthConfig struct {
 }
 func InitOAuth(cfg OAuthConfig) {
 	if cfg.CallbackURL == "" {
-		log.Fatalf("ERROR CRÍTICO: CallbackURL está vacío. Revisa que tu archivo .env esté en la raíz del proyecto y contenga CALLBACK_URL=http://localhost:8080/auth/google/callback")
+		log.Fatalf("CRITICAL ERROR: CallbackURL is empty. Check your .env file at the project root and include CALLBACK_URL=http://localhost:8080/auth/google/callback")
 	}
 	
 	store := sessions.NewCookieStore([]byte(cfg.SessionSecret))

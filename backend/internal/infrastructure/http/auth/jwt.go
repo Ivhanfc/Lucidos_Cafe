@@ -8,7 +8,7 @@ import (
 )
 var jwtSecretKey = []byte(os.Getenv("SECRET_JWT"))
 func getSecretKey() []byte {
-	secret := os.Getenv("secretjwt")
+	secret := os.Getenv("SECRET_JWT")
 	if secret == "" {
 		panic("JWT secret key is not set in environment variables")
 	}
@@ -30,18 +30,19 @@ func GenerateToken(userID string, username string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(tokenString string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return getSecretKey(), nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if !token.Valid {
-		return nil, jwt.ErrSignatureInvalid
-	}
-	return token, nil
+func ValidateToken(tokenString string) (jwt.MapClaims, error) {
+    claims := jwt.MapClaims{}
+
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, jwt.ErrSignatureInvalid
+        }
+        return getSecretKey(), nil
+    })
+    
+    if err != nil || !token.Valid {
+        return nil, jwt.ErrSignatureInvalid
+    }
+    
+    return claims, nil
 }
