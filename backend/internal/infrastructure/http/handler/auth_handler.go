@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -239,73 +240,100 @@ func (h *AuthHandler) ManualLogin(c *gin.Context) {
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	tokenStr, err := c.Cookie("token")
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: missing cookie"})
-		return
-	}
+    tokenStr, err := c.Cookie("token")
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: missing cookie"})
+        return
+    }
 
-	claims, err := auth.ValidateToken(tokenStr)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: invalid token"})
-		return
-	}
+    claims, err := auth.ValidateToken(tokenStr)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: invalid token"})
+        return
+    }
 
-	userID, ok := claims["user_id"].(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "malformed token"})
-		return
-	}
+    userID, ok := claims["user_id"].(string)
+    if !ok {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "malformed token"})
+        return
+    }
 
-	ctx := c.Request.Context()
-	redisKey := "user:" + userID
+    ctx := c.Request.Context()
+    redisKey := "user:" + userID
 
-	// 1. CACHE HIT: read from Redis.
-	cachedUser, err := h.redisClient.Get(ctx, redisKey).Result()
-	if err == nil {
-		var cachedMap gin.H
-		if err := json.Unmarshal([]byte(cachedUser), &cachedMap); err == nil {
-			c.JSON(http.StatusOK, gin.H{"user": cachedMap})
-			return
-		}
-	}
+    // 1. CACHE HIT: si el JSON del usuario completo ya está en Redis, responder de inmediato.
+    cachedUser, err := h.redisClient.Get(ctx, redisKey).Result()
+    if err == nil {
+        var cachedMap gin.H
+        if err := json.Unmarshal([]byte(cachedUser), &cachedMap); err == nil {
+            c.JSON(http.StatusOK, gin.H{"user": cachedMap})
+            return
+        }
+    }
 
-	// 2. CACHE MISS: read from PostgreSQL.
-	appUser, err := h.userRepo.FindByID(ctx, userID)
-	if err != nil && !errors.Is(err, user.ErrUserNotFound) && !errors.Is(err, sql.ErrNoRows) {
-		log.Printf("[ERROR AuthHandler.Me] Database failure for user ID %v: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
+    // 2. CACHE MISS: leer usuario base desde PostgreSQL.
+    appUser, err := h.userRepo.FindByID(ctx, userID)
+    if err != nil && !errors.Is(err, user.ErrUserNotFound) && !errors.Is(err, sql.ErrNoRows) {
+        log.Printf("[ERROR AuthHandler.Me] Database failure for user ID %v: %v", userID, err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+        return
+    }
 
-	if appUser == nil {
-		log.Printf("[WARN AuthHandler.Me] User ID %v not found. Clearing cookie.", userID)
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "token",
-			Value:    "",
-			MaxAge:   -1,
-			Path:     "/",
-			Domain:   "",
-			Secure:   false,
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-		return
-	}
+    if appUser == nil {
+        log.Printf("[WARN AuthHandler.Me] User ID %v not found. Clearing cookie.", userID)
+        http.SetCookie(c.Writer, &http.Cookie{
+            Name:     "token",
+            Value:    "",
+            MaxAge:   -1,
+            Path:     "/",
+            Domain:   "",
+            Secure:   false,
+            HttpOnly: true,
+            SameSite: http.SameSiteLaxMode,
+        })
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+        return
+    }
 
-	userMap := serializeUser(appUser)
-	if userMap == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not serialize user"})
-		return
-	}
+    userMap := serializeUser(appUser)
+    if userMap == nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not serialize user"})
+        return
+    }
 
-	// 3. Save in Redis (TTL: 24 hours).
-	if userBytes, err := json.Marshal(userMap); err == nil {
-		h.redisClient.Set(ctx, redisKey, userBytes, 24*time.Hour)
-	}
+    // 3. OBTENER MÉTRICAS DINÁMICAS: Si Redis tiene contadores específicos (INCR), sobrescribir.
+    streak, points := h.fetchMetricsFromRedis(ctx, userID, appUser.GetStreakDays(), appUser.GetLoyaltyPoints())
+    userMap["streak_days"] = streak
+    userMap["loyalty_points"] = points
 
-	c.JSON(http.StatusOK, gin.H{"user": userMap})
+    // 4. GUARDAR EN CACHÉ: Escribir el mapa consolidado en Redis (TTL: 24h).
+    if userBytes, err := json.Marshal(userMap); err == nil {
+        h.redisClient.Set(ctx, redisKey, userBytes, 24*time.Hour)
+    }
+
+    c.JSON(http.StatusOK, gin.H{"user": userMap})
+}
+
+// Helper para leer contadores mediante Pipeline (1 solo RTT a Redis)
+func (h *AuthHandler) fetchMetricsFromRedis(ctx context.Context, userID string, defaultStreak, defaultPoints int) (int, int) {
+    pipe := h.redisClient.Pipeline()
+
+    streakCmd := pipe.Get(ctx, "user:"+userID+":streak_days")
+    pointsCmd := pipe.Get(ctx, "user:"+userID+":loyalty_points")
+
+    _, _ = pipe.Exec(ctx)
+
+    streak, err := streakCmd.Int()
+    if err != nil {
+        streak = defaultStreak
+    }
+
+    points, err := pointsCmd.Int()
+    if err != nil {
+        points = defaultPoints
+    }
+
+    return streak, points
 }
 
 func serializeUser(appUser *user.User) gin.H {

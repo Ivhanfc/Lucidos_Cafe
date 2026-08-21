@@ -2,7 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './LoginPage';
-import ShoppingPage from './shopping';
+import ShoppingPage from './shopping/ShoppingPage';
 
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
